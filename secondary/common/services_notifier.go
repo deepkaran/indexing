@@ -2,6 +2,7 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"github.com/couchbase/indexing/secondary/dcp"
 	"github.com/couchbase/indexing/secondary/logging"
 	"strings"
@@ -128,7 +129,7 @@ func (n Notification) String() string {
 	if n.Type == PoolChangeNotification {
 		t = "PoolChangeNotification"
 	}
-	return t
+	return t + fmt.Sprintf(" %v", n.Msg)
 }
 
 type ServicesChangeNotifier struct {

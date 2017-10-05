@@ -533,14 +533,15 @@ func (b *metadataClient) updateIndexerList(discardExisting bool) error {
 	b.topoChangeLock.Lock()
 	defer b.topoChangeLock.Unlock()
 
+	fmsg := "Refreshing indexer list due to cluster changes or auto-refresh."
+	logging.Infof(fmsg)
+
 	// populate indexers' adminport and queryport
 	adminports, err := getIndexerAdminports(cinfo)
 	if err != nil {
 		return err
 	}
 
-	fmsg := "Refreshing indexer list due to cluster changes or auto-refresh."
-	logging.Infof(fmsg)
 	logging.Infof("Refreshed Indexer List: %v", adminports)
 
 	var curradmns map[string]common.IndexerId
@@ -818,7 +819,9 @@ func getIndexerAdminports(cinfo *common.ClusterInfoCache) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		logging.Verbosef("node %v status: %q", node, status)
+
+		nodeAddr, _ := cinfo.GetServiceAddress(node, "indexAdmin")
+		logging.Infof("node %v status: %q", nodeAddr, status)
 		if status == "healthy" || status == "active" || status == "warmup" {
 			adminport, err := cinfo.GetServiceAddress(node, "indexAdmin")
 			if err != nil {
@@ -826,7 +829,8 @@ func getIndexerAdminports(cinfo *common.ClusterInfoCache) ([]string, error) {
 			}
 			iAdminports = append(iAdminports, adminport)
 		} else {
-			logging.Warnf("node %v status: %q", node, status)
+			nodeAddr, _ = cinfo.GetServiceAddress(node, "indexAdmin")
+			logging.Warnf("node %v status: %q", nodeAddr, status)
 		}
 	}
 	return iAdminports, nil
@@ -858,6 +862,8 @@ func (b *metadataClient) watchClusterChanges() {
 		time.Sleep(time.Duration(b.servicesNotifierRetryTm) * time.Millisecond)
 		go b.watchClusterChanges()
 	}
+
+	logging.Infof("watchClusterChanges begin")
 
 	clusterURL, err := common.ClusterAuthUrl(b.cluster)
 	if err != nil {
